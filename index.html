@@ -896,7 +896,7 @@ function copyFormContent() {
 }
 
 function copyFourPointMemo() {
-    const text = `Why have you accessed the account? mistake\r\nWhat actions (if any) have you taken on the account? N/A\r\nWhat customer contact (if any) has taken place? N/A\r\nWhat are the next action or steps (if any)? N/A`;
+    const text = `Why have you accessed the account? View only\r\nWhat actions (if any) have you taken on the account? N/A\r\nWhat customer contact (if any) has taken place? N/A\r\nWhat are the next action or steps (if any)? N/A`;
     navigator.clipboard.writeText(text).then(() => {
         const btn = document.getElementById('fourPointMemoBtn');
         btn.textContent = 'Copied!';
