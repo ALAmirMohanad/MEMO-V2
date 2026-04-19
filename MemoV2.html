@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Memo Form - Multi-Memo</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f4;
+            --form-bg: white;
+            --text-color: #333;
+            --border-color: #ccc;
+            --header-border: #eee;
+            --button-copy-bg: #007bff;
+            --button-reset-bg: #dc3545;
+            --button-success-bg: #28a745;
+            --button-undo-bg: #1e7e34;
+            --button-color: white;
+            --button-4pt-memo-bg: #28a745;
+        }
+        .dark-mode {
+            --bg-color: #121212;
+            --form-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #555;
+            --header-border: #444;
+            --button-copy-bg: #4da6ff;
+            --button-reset-bg: #ff6666;
+            --button-success-bg: #2ecc71;
+            --button-undo-bg: #145a32;
+            --button-color: black;
+            --button-4pt-memo-bg: #218838;
+        }
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg-color);
+            background-image: url('sl_052622_50580_16.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s, background-image 0.3s;
+            zoom: 60%;
+        }
+        body.dark-mode {
+            background-image: url('rm345-kul-10.jpg');
+        }
+        .main-wrapper {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 850px;
+        }
+        .sidebar {
+            display: grid;
+            grid-template-columns: 45px 45px;
+            grid-auto-rows: 40px;
+            gap: 8px;
+            align-content: start;
+        }
+        .memo-tab {
+            width: 45px;
+            height: 40px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--form-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .memo-tab.active {
+            background-color: var(--button-copy-bg);
+            color: white;
+            border-color: var(--button-copy-bg);
+            box-shadow: 0 0 8px rgba(0,123,255,0.5);
+        }
+        .memo-tab.has-data {
+            border-color: #f0a500;
+            box-shadow: inset 0 0 0 2px #f0a500;
+        }
+        #searchToggleBtn {
+            grid-column: span 2;
+            width: 100%;
+            height: 40px;
+            border-radius: 6px;
+            border: 2px solid #b8860b;
+            background: linear-gradient(135deg, #f5c842 0%, #d4a017 50%, #f5c842 100%);
+            color: #3a2200;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: 0.2s;
+            box-shadow: 0 2px 8px rgba(212,160,23,0.5);
+            text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+        }
+        #searchToggleBtn:hover {
+            background: linear-gradient(135deg, #ffd700 0%, #e6b800 50%, #ffd700 100%);
+            box-shadow: 0 3px 12px rgba(212,160,23,0.7);
+        }
+
+        /* ── Search overlay ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.65);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.open { display: flex; }
+
+        /* Search list panel */
+        #searchPanel { }
+        .search-box {
+            background: var(--form-bg);
+            color: var(--text-color);
+            padding: 24px;
+            border-radius: 10px;
+            width: 640px;
+            max-height: 82vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+        }
+        .search-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-shrink: 0;
+        }
+        .search-header-row h2 { margin: 0; font-size: 18px; }
+        .search-count { font-size: 12px; color: #aaa; }
+        #searchInput {
+            width: 100%;
+            padding: 11px 14px;
+            font-size: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--form-bg);
+            color: var(--text-color);
+            box-sizing: border-box;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+        #searchResults {
+            overflow-y: auto;
+            flex: 1;
+        }
+        .search-prompt {
+            text-align: center;
+            color: #888;
+            padding: 30px 0;
+            font-size: 14px;
+        }
+        .search-result-item {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .search-result-item:hover {
+            background: rgba(212,160,23,0.1);
+            border-color: #d4a017;
+        }
+        .search-result-meta {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+        .search-result-ctn {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+        .search-result-snippet {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .search-no-results { color: #888; text-align: center; padding: 30px; font-size: 14px; }
+        .search-close-btn {
+            margin-top: 14px;
+            padding: 9px 22px;
+            background: var(--button-reset-bg);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            align-self: flex-start;
+            flex-shrink: 0;
+        }
+
+        /* Memo detail panel */
+        #memoDetailPanel { }
+        .memo-detail-box {
+            background: var(--form-bg);
+            color: var(--text-color);
+            padding: 24px;
+            border-radius: 10px;
+            width: 660px;
+            max-height: 84vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 40px rgba(0,0,0,0.6);
+        }
+        .memo-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-shrink: 0;
+        }
+        .memo-detail-header h2 { margin: 0; font-size: 17px; }
+        .memo-detail-meta { font-size: 12px; color: #aaa; margin-top: 2px; }
+        #memoDetailContent {
+            flex: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 14px;
+            line-height: 1.7;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 14px;
+            background: var(--bg-color);
+            margin-bottom: 14px;
+        }
+        .memo-detail-actions {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .detail-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+        }
+        .detail-btn-copy   { background: var(--button-copy-bg);  flex: 1; }
+        .detail-btn-delete { background: var(--button-reset-bg); flex: 0 0 auto; }
+        .detail-btn-back   { background: #555; flex: 0 0 auto; }
+        mark { background: #ffe066; color: #222; border-radius: 2px; padding: 0 1px; }
+
+        /* Form */
+        .form-container {
+            background: var(--form-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            flex-grow: 1;
+            position: relative;
+        }
+        h1 {
+            border-bottom: 2px solid var(--header-border);
+            padding-bottom: 10px;
+            text-align: center;
+            margin-top: 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 18px;
+            background-color: var(--form-bg);
+            color: var(--text-color);
+        }
+        .flex-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .wide-select { width: 65% !important; margin-bottom: 0 !important; }
+        .toggle-btn {
+            width: 33%;
+            padding: 9px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            transition: background-color 0.3s;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .toggle-off { background-color: var(--button-reset-bg); }
+        .toggle-on  { background-color: var(--button-success-bg); }
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+        .sts-btn {
+            background-color: var(--button-copy-bg);
+            color: var(--button-color);
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        button.action-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--button-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        #copyBtn    { background-color: var(--button-copy-bg);   width: 40%; }
+        #clearBtn   { background-color: var(--button-reset-bg);  width: 30%; font-size: 13px; }
+        #clearAllBtn{ background-color: #8b0000; width: 9%; font-size: 18px; }
+        #undoBtn    { background-color: var(--button-undo-bg);   width: 9%; font-size: 18px; }
+        #redoBtn    { background-color: #c2185b; width: 9%; font-size: 18px; }
+
+        @keyframes shake {
+            0%,100%{ transform: translateX(0); }
+            25%    { transform: translateX(-6px); }
+            50%    { transform: translateX(6px); }
+            75%    { transform: translateX(-6px); }
+        }
+        .shake-no { animation: shake 0.4s ease-in-out; }
+
+        #darkModeToggle {
+            position: absolute;
+            top: 10px; right: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            color: var(--text-color);
+        }
+        #fourPointMemoBtn {
+            grid-column: span 2;
+            width: 100%;
+            height: 40px;
+            border-radius: 6px;
+            border: none;
+            background-color: var(--button-4pt-memo-bg);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #fourPointMemoBtn:hover { filter: brightness(1.15); }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="sidebar" id="sidebar"></div>
+
+    <div class="form-container">
+        <button id="darkModeToggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">🌙</button>
+
+        <h1 id="memoTitle">MEMO 1</h1>
+
+        <form id="customerForm">
+            <label for="vulnerable_customer">Vulnerable Customer Script Completed Today :</label>
+            <div class="flex-row">
+                <select id="vulnerable_customer" name="vulnerable_customer" class="wide-select">
+                    <option value="N/A">N/A</option>
+                    <option value="Yes">Yes</option>
+                </select>
+                <button type="button" id="toggle_vulnerable" class="toggle-btn toggle-off" onclick="toggleStatus('vulnerable')">Prev Agent? NO</button>
+                <input type="checkbox" id="prev_vulnerable" style="display:none;">
+            </div>
+
+            <label for="ctn_number">CTN :</label>
+            <input type="text" id="ctn_number" name="ctn_number" placeholder="Enter mobile number">
+
+            <label for="caller">Who was the caller?</label>
+            <input type="text" id="caller" name="caller">
+
+            <label for="account_holder_type">Account holder or contact type:</label>
+            <select id="account_holder_type" name="account_holder_type">
+                <option value="Holder">Account Holder</option>
+                <option value="Level 1">Level 1 Contact</option>
+                <option value="Level 2">Level 2 Contact</option>
+                <option value="Other">Other user</option>
+            </select>
+
+            <label for="dpa_checks">Passed/failed DPA checks:</label>
+            <div class="flex-row">
+                <select id="dpa_checks" name="dpa_checks" class="wide-select">
+                    <option value="N/A">N/A</option>
+                    <option value="Passed by PIN">Passed by PIN</option>
+                    <option value="Passed by Memorable word">Passed by Memorable word</option>
+                    <option value="Passed by OTAC">Passed by OTAC</option>
+                    <option value="Passed by security questions">Passed by security questions</option>
+                    <option value="Passed by Mobile Detection">Passed by Mobile Detection</option>
+                    <option value="Passed by Serial Number">Passed by Serial Number</option>
+                    <option value="DPA not required">DPA not required</option>
+                    <option value="DPA failed">DPA failed</option>
+                </select>
+                <button type="button" id="toggle_dpa" class="toggle-btn toggle-off" onclick="toggleStatus('dpa')">Prev Agent? NO</button>
+                <input type="checkbox" id="prev_dpa" style="display:none;">
+            </div>
+
+            <label for="issue">What is the customer's issue?</label>
+            <textarea id="issue" name="issue" rows="3"></textarea>
+
+            <div class="label-row">
+                <label for="actions" style="margin-top:0;">Actions taken by you:</label>
+                <div style="display:flex;gap:6px;">
+                    <button type="button" class="sts-btn" onclick="insertSTSTemplate()">+ STS</button>
+                    <button type="button" class="sts-btn" onclick="insertSCIOTemplate()">SCIO</button>
+                    <button type="button" class="sts-btn" onclick="insertSLATemplate()">SLA</button>
+                </div>
+            </div>
+            <textarea id="actions" name="actions" rows="6"></textarea>
+
+            <label>The outcome agreed with the customer:</label>
+            <div class="flex-row">
+                <select id="outcome_status" name="outcome_status" style="width:30%;">
+                    <option value="Agreed">Agreed</option>
+                    <option value="Not agreed">Not agreed</option>
+                    <option value="Dropped">Dropped</option>
+                    <option value="No answer">No answer</option>
+                </select>
+                <input type="text" id="outcome_note" name="outcome_note" style="width:68%;">
+            </div>
+
+            <label>Did the customer request to speak to someone else?</label>
+            <div class="flex-row">
+                <select id="requested_someone_else_opt" name="requested_someone_else_opt" style="width:30%;">
+                    <option value="N/A">N/A</option>
+                    <option value="Yes">Yes</option>
+                </select>
+                <input type="text" id="requested_someone_else_note" name="requested_someone_else_note" style="width:68%;">
+            </div>
+
+            <label>Did you transfer the call?</label>
+            <div class="flex-row">
+                <select id="transferred_opt" name="transferred_opt" style="width:30%;">
+                    <option value="N/A">N/A</option>
+                    <option value="Yes">Yes</option>
+                </select>
+                <input type="text" id="transferred_note" name="transferred_note" style="width:68%;">
+            </div>
+
+            <div class="button-group">
+                <button type="button" id="copyBtn"    class="action-btn" onclick="copyFormContent()">Copy</button>
+                <button type="reset"  id="clearBtn"   class="action-btn">Clear Memo</button>
+                <button type="button" id="clearAllBtn" class="action-btn" onclick="clearAllMemos()" title="Clear All Memos">🗑️</button>
+                <button type="button" id="undoBtn"    class="action-btn" onclick="restoreLastDeleted()" title="Undo Clear">↩</button>
+                <button type="button" id="redoBtn"    class="action-btn" onclick="redoLastDeleted()"    title="Redo Clear">↪</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Search list panel -->
+<div id="searchPanel" class="modal-overlay">
+    <div class="search-box">
+        <div class="search-header-row">
+            <div>
+                <h2>🔍 Search Memos</h2>
+            </div>
+            <span class="search-count" id="searchCount"></span>
+        </div>
+        <input type="text" id="searchInput" placeholder="Type a CTN… (use 0000 for memos with no CTN)" oninput="performSearch()">
+        <div id="searchResults">
+            <div class="search-prompt">⬆ Start typing a CTN to find stored memos.</div>
+        </div>
+        <button class="search-close-btn" onclick="closeSearch()">✕ Close</button>
+    </div>
+</div>
+
+<!-- Memo detail panel -->
+<div id="memoDetailPanel" class="modal-overlay">
+    <div class="memo-detail-box">
+        <div class="memo-detail-header">
+            <div>
+                <h2 id="detailTitle">Memo</h2>
+                <div class="memo-detail-meta" id="detailMeta"></div>
+            </div>
+        </div>
+        <div id="memoDetailContent"></div>
+        <div class="memo-detail-actions">
+            <button class="detail-btn detail-btn-back"   onclick="closeDetail()">← Back</button>
+            <button class="detail-btn detail-btn-copy"   id="detailCopyBtn" onclick="copyDetailContent()">Copy Memo</button>
+            <button class="detail-btn detail-btn-delete" onclick="deleteDetailMemo()">🗑 Delete</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ─── State ─────────────────────────────────────────── */
+let currentMemoId = 1;
+let clearHistory  = {};   // in-memory cache; persisted to localStorage
+let redoHistory   = {};
+
+/* ─── IndexedDB ──────────────────────────────────────── */
+let db = null;
+
+function initDB() {
+    const req = indexedDB.open('MemoDB', 1);
+    req.onupgradeneeded = (e) => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains('copied_memos')) {
+            const store = d.createObjectStore('copied_memos', { keyPath: 'id', autoIncrement: true });
+            store.createIndex('ctn', 'ctn', { unique: false });
+        }
+    };
+    req.onsuccess = (e) => { db = e.target.result; };
+    req.onerror   = (e) => console.error('IndexedDB error', e);
+}
+
+function saveMemoToDB(content, ctn) {
+    if (!db) return;
+    const key = (ctn && ctn.trim()) ? ctn.trim() : '0000';
+    const tx    = db.transaction('copied_memos', 'readwrite');
+    const store = tx.objectStore('copied_memos');
+    const idx   = store.index('ctn');
+    const getAll = idx.getAll(key);
+    getAll.onsuccess = () => {
+        const isDuplicate = getAll.result.some(m => m.content === content);
+        if (!isDuplicate) {
+            store.add({ ctn: key, content, timestamp: new Date().toISOString() });
+            countAllMemos(n => {
+                const el = document.getElementById('searchCount');
+                if (el) el.textContent = `${n.toLocaleString()} memo${n !== 1 ? 's' : ''} stored`;
+            });
+        }
+    };
+}
+
+/* ─── History persistence ────────────────────────────── */
+function saveHistoryToLS(memoId) {
+    try {
+        localStorage.setItem(`clearHistory_${memoId}`, JSON.stringify(clearHistory[memoId] || []));
+        localStorage.setItem(`redoHistory_${memoId}`,  JSON.stringify(redoHistory[memoId]  || []));
+    } catch(e) { /* quota exceeded – silently ignore */ }
+}
+
+function loadHistoryFromLS(memoId) {
+    try {
+        const ch = localStorage.getItem(`clearHistory_${memoId}`);
+        const rh = localStorage.getItem(`redoHistory_${memoId}`);
+        clearHistory[memoId] = ch ? JSON.parse(ch) : [];
+        redoHistory[memoId]  = rh ? JSON.parse(rh) : [];
+    } catch(e) {
+        clearHistory[memoId] = [];
+        redoHistory[memoId]  = [];
+    }
+}
+
+/* ─── Boot ───────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+    initDB();
+    setupSidebar();
+    loadMemo(1);
+    refreshTabIndicators();
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeToggle').textContent = '☀️';
+    }
+    document.getElementById('searchPanel').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('searchPanel')) closeSearch();
+    });
+    document.getElementById('memoDetailPanel').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('memoDetailPanel')) closeDetail();
+    });
+});
+
+/* ─── Sidebar: search top, pairs 1-2…29-30, 4pt memo bottom ── */
+function setupSidebar() {
+    const sidebar = document.getElementById('sidebar');
+
+    // Search button — spans both columns, sits above memo 1 & 2
+    const searchBtn = document.createElement('button');
+    searchBtn.id        = 'searchToggleBtn';
+    searchBtn.title     = 'Search copied memos';
+    searchBtn.innerHTML = '🔍';
+    searchBtn.onclick   = openSearch;
+    sidebar.appendChild(searchBtn);
+
+    // Memo tabs: 1-2, 3-4, …, 29-30
+    for (let i = 1; i <= 30; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i;
+        btn.classList.add('memo-tab');
+        btn.id = `tab-${i}`;
+        btn.onclick = () => switchMemo(i);
+        sidebar.appendChild(btn);
+    }
+
+    // 4-point memo button — spans both columns, sits below memo 29 & 30
+    const fpmBtn = document.createElement('button');
+    fpmBtn.id        = 'fourPointMemoBtn';
+    fpmBtn.innerHTML = '4 point memo';
+    fpmBtn.onclick   = copyFourPointMemo;
+    sidebar.appendChild(fpmBtn);
+
+    document.getElementById('tab-1').classList.add('active');
+}
+
+function switchMemo(id) {
+    document.querySelectorAll('.memo-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`tab-${id}`).classList.add('active');
+    document.getElementById('memoTitle').innerText = `MEMO ${id}`;
+    currentMemoId = id;
+    loadMemo(id);
+}
+
+function loadMemo(id) {
+    loadHistoryFromLS(id);
+    const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+    fields.forEach(field => {
+        const saved = localStorage.getItem(`memo${id}_${field.id}`);
+        if (saved !== null) {
+            if (field.type === 'checkbox') {
+                field.checked = saved === 'true';
+                updateToggleUI(field.id.replace('prev_', ''), field.checked);
+            } else {
+                field.value = saved;
+            }
+        } else {
+            if (field.type === 'checkbox') {
+                field.checked = false;
+                updateToggleUI(field.id.replace('prev_', ''), false);
+            } else {
+                field.value = (field.tagName === 'SELECT') ? field.options[0].value : '';
+            }
+        }
+    });
+}
+
+/* Light indicator for tabs that have data */
+function refreshTabIndicators() {
+    for (let i = 1; i <= 30; i++) {
+        const btn = document.getElementById(`tab-${i}`);
+        if (!btn) continue;
+        const hasCTN = localStorage.getItem(`memo${i}_ctn_number`);
+        if (hasCTN && hasCTN.trim() !== '') {
+            btn.classList.add('has-data');
+        } else {
+            btn.classList.remove('has-data');
+        }
+    }
+}
+
+/* ─── Toggle buttons ────────────────────────────────── */
+function toggleStatus(type) {
+    const checkbox   = document.getElementById(`prev_${type}`);
+    checkbox.checked = !checkbox.checked;
+    updateToggleUI(type, checkbox.checked);
+    localStorage.setItem(`memo${currentMemoId}_prev_${type}`, checkbox.checked);
+}
+
+function updateToggleUI(type, isActive) {
+    const btn = document.getElementById(`toggle_${type}`);
+    if (!btn) return;
+    if (isActive) {
+        btn.textContent = 'Prev Agent? YES';
+        btn.classList.replace('toggle-off', 'toggle-on');
+    } else {
+        btn.textContent = 'Prev Agent? NO';
+        btn.classList.replace('toggle-on', 'toggle-off');
+    }
+}
+
+/* ─── Auto-save on input ────────────────────────────── */
+document.getElementById('customerForm').addEventListener('input', (e) => {
+    if (e.target.id && e.target.type !== 'button') {
+        const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        localStorage.setItem(`memo${currentMemoId}_${e.target.id}`, val);
+        refreshTabIndicators();
+    }
+});
+
+/* ─── Dark mode ──────────────────────────────────────── */
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    document.getElementById('darkModeToggle').textContent = isDark ? '☀️' : '🌙';
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
+/* ─── Templates ──────────────────────────────────────── */
+function insertSTSTemplate() {
+    const a = document.getElementById('actions');
+    a.value += (a.value ? '\n' : '') +
+        `-- Order Summary\nPlan: \nPrice: \nDiscount: \npay monthly number: \nSpend manager: \nSecure net 3 month free: \nMarketing: \nOrder number: `;
+    localStorage.setItem(`memo${currentMemoId}_actions`, a.value);
+    a.focus();
+}
+function insertSCIOTemplate() {
+    const a = document.getElementById('actions');
+    a.value += (a.value ? '\n' : '') + 'SCIO ref : []';
+    localStorage.setItem(`memo${currentMemoId}_actions`, a.value);
+    a.focus();
+}
+function insertSLATemplate() {
+    const a = document.getElementById('actions');
+    a.value += (a.value ? '\n' : '') + 'SLA:';
+    localStorage.setItem(`memo${currentMemoId}_actions`, a.value);
+    a.focus();
+}
+
+/* ─── Snapshot helpers ───────────────────────────────── */
+function captureSnapshot(id) {
+    const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+    let snap = {};
+    fields.forEach(f => {
+        const val = localStorage.getItem(`memo${id}_${f.id}`);
+        snap[f.id] = val !== null ? val : (f.tagName === 'SELECT' ? f.options[0].value : '');
+    });
+    return snap;
+}
+
+function applySnapshot(snap) {
+    const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+    fields.forEach(f => {
+        if (snap[f.id] !== undefined) {
+            if (f.type === 'checkbox') {
+                f.checked = snap[f.id] === 'true' || snap[f.id] === true;
+                updateToggleUI(f.id.replace('prev_', ''), f.checked);
+            } else {
+                f.value = snap[f.id];
+            }
+            localStorage.setItem(`memo${currentMemoId}_${f.id}`, snap[f.id]);
+        }
+    });
+    refreshTabIndicators();
+}
+
+function pushClearHistory(memoId, snap) {
+    if (!clearHistory[memoId]) clearHistory[memoId] = [];
+    clearHistory[memoId].push(snap);
+    if (clearHistory[memoId].length > 10) clearHistory[memoId].shift();
+    redoHistory[memoId] = [];          // new action clears redo
+    saveHistoryToLS(memoId);
+}
+
+/* ─── Undo / Redo ────────────────────────────────────── */
+function restoreLastDeleted() {
+    loadHistoryFromLS(currentMemoId);
+    const hist = clearHistory[currentMemoId];
+    if (!hist || hist.length === 0) {
+        shake('undoBtn'); return;
+    }
+    // Push current state to redo
+    const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+    let cur = {};
+    fields.forEach(f => { cur[f.id] = f.type === 'checkbox' ? String(f.checked) : f.value; });
+    if (!redoHistory[currentMemoId]) redoHistory[currentMemoId] = [];
+    redoHistory[currentMemoId].push(cur);
+    if (redoHistory[currentMemoId].length > 10) redoHistory[currentMemoId].shift();
+
+    const snap = hist.pop();
+    applySnapshot(snap);
+    saveHistoryToLS(currentMemoId);
+}
+
+function redoLastDeleted() {
+    loadHistoryFromLS(currentMemoId);
+    const hist = redoHistory[currentMemoId];
+    if (!hist || hist.length === 0) {
+        shake('redoBtn'); return;
+    }
+    const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+    let cur = {};
+    fields.forEach(f => { cur[f.id] = f.type === 'checkbox' ? String(f.checked) : f.value; });
+    if (!clearHistory[currentMemoId]) clearHistory[currentMemoId] = [];
+    clearHistory[currentMemoId].push(cur);
+    if (clearHistory[currentMemoId].length > 10) clearHistory[currentMemoId].shift();
+
+    const snap = hist.pop();
+    applySnapshot(snap);
+    saveHistoryToLS(currentMemoId);
+}
+
+function shake(btnId) {
+    const btn = document.getElementById(btnId);
+    btn.classList.add('shake-no');
+    setTimeout(() => btn.classList.remove('shake-no'), 400);
+}
+
+/* ─── Clear single memo (form reset) ────────────────── */
+document.getElementById('customerForm').addEventListener('reset', () => {
+    const snap = captureSnapshot(currentMemoId);
+    pushClearHistory(currentMemoId, snap);
+
+    const clearBtn = document.getElementById('clearBtn');
+    clearBtn.textContent = 'Cleared!';
+    setTimeout(() => { clearBtn.textContent = 'Clear Memo'; }, 1500);
+
+    setTimeout(() => {
+        document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select').forEach(f => {
+            localStorage.removeItem(`memo${currentMemoId}_${f.id}`);
+        });
+        updateToggleUI('vulnerable', false);
+        updateToggleUI('dpa', false);
+        refreshTabIndicators();
+    }, 10);
+});
+
+/* ─── Clear ALL memos ────────────────────────────────── */
+function clearAllMemos() {
+    if (!confirm('Are you sure you want to clear ALL 30 memos?')) return;
+    for (let i = 1; i <= 30; i++) {
+        const snap = captureSnapshot(i);
+        if (!clearHistory[i]) clearHistory[i] = [];
+        clearHistory[i].push(snap);
+        if (clearHistory[i].length > 10) clearHistory[i].shift();
+        redoHistory[i] = [];
+        saveHistoryToLS(i);
+    }
+    Object.keys(localStorage).filter(k => /^memo\d+_/.test(k)).forEach(k => localStorage.removeItem(k));
+    loadMemo(currentMemoId);
+    updateToggleUI('vulnerable', false);
+    updateToggleUI('dpa', false);
+    refreshTabIndicators();
+    const btn = document.getElementById('clearAllBtn');
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = '🗑️'; }, 1500);
+}
+
+/* ─── Copy memo ──────────────────────────────────────── */
+function buildMemoText() {
+    const f   = id => document.getElementById(id).value;
+    const chk = id => document.getElementById(id).checked;
+    const NL  = '\r\n', DNL = '\r\n\r\n';
+
+    const prevVul   = chk('prev_vulnerable') ? ' (Done by previous agent)' : '';
+    const prevDPA   = chk('prev_dpa')        ? ' (Done by previous agent)' : '';
+    const outNote   = f('outcome_note')              ? ` - ${f('outcome_note')}`              : '';
+    const reqNote   = f('requested_someone_else_note')? ` - ${f('requested_someone_else_note')}` : '';
+    const transNote = f('transferred_note')          ? ` - ${f('transferred_note')}`          : '';
+
+    return (
+        `Vulnerable Customer Script Completed Today :` + NL + f('vulnerable_customer') + prevVul  + DNL +
+        `CTN :`                                        + NL + f('ctn_number')                      + DNL +
+        `Who was the caller?:`                         + NL + f('caller')                          + DNL +
+        `Account holder or contact type:`             + NL + f('account_holder_type')             + DNL +
+        `Passed/failed DPA checks:`                   + NL + f('dpa_checks') + prevDPA            + DNL +
+        `What is the customer's issue?:`              + NL + f('issue')                            + DNL +
+        `Actions taken by you:`                       + NL + f('actions')                         + DNL +
+        `The outcome agreed with the customer:`       + NL + f('outcome_status') + outNote        + DNL +
+        `Did the customer request to speak to someone else?:` + NL + f('requested_someone_else_opt') + reqNote + DNL +
+        `Did you transfer the call?:`                 + NL + f('transferred_opt') + transNote
+    );
+}
+
+function copyFormContent() {
+    const content = buildMemoText();
+    const ctn     = document.getElementById('ctn_number').value.trim();
+
+    navigator.clipboard.writeText(content).then(() => {
+        saveMemoToDB(content, ctn);          // ← save to IndexedDB
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    });
+}
+
+function copyFourPointMemo() {
+    const text = `Why have you accessed the account? mistake\r\nWhat actions (if any) have you taken on the account? N/A\r\nWhat customer contact (if any) has taken place? N/A\r\nWhat are the next action or steps (if any)? N/A`;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('fourPointMemoBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = '4 point memo'; }, 1500);
+    });
+}
+
+/* ─── IndexedDB scalable search (cursor, no getAll) ───── */
+let _detailRecord = null;   // currently open record in detail view
+let _lastQuery    = '';     // remember query to re-run after delete
+
+function searchByCTNPrefix(prefix, limit, callback) {
+    if (!db) { callback([]); return; }
+    const results = [];
+    const tx      = db.transaction('copied_memos', 'readonly');
+    const store   = tx.objectStore('copied_memos');
+    const idx     = store.index('ctn');
+    // IDBKeyRange prefix match: "0123" → ["0123", "0123\uffff"]
+    const range   = prefix
+        ? IDBKeyRange.bound(prefix, prefix + '\uffff', false, false)
+        : null;
+    const req = range ? idx.openCursor(range, 'prev') : idx.openCursor(null, 'prev');
+    req.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (!cursor || results.length >= limit) { callback(results); return; }
+        results.push(cursor.value);
+        cursor.continue();
+    };
+    req.onerror = () => callback([]);
+}
+
+function countAllMemos(callback) {
+    if (!db) { callback(0); return; }
+    const tx  = db.transaction('copied_memos', 'readonly');
+    const req = tx.objectStore('copied_memos').count();
+    req.onsuccess = () => callback(req.result);
+    req.onerror   = () => callback(0);
+}
+
+/* ─── Search open / close ────────────────────────────── */
+function openSearch() {
+    _lastQuery = '';
+    document.getElementById('searchPanel').classList.add('open');
+    const inp = document.getElementById('searchInput');
+    inp.value = '';
+    inp.focus();
+    document.getElementById('searchResults').innerHTML =
+        '<div class="search-prompt">⬆ Start typing a CTN to find stored memos.</div>';
+    countAllMemos(n => {
+        document.getElementById('searchCount').textContent =
+            n ? `${n.toLocaleString()} memo${n !== 1 ? 's' : ''} stored` : 'No memos stored yet';
+    });
+}
+
+function closeSearch() {
+    document.getElementById('searchPanel').classList.remove('open');
+}
+
+/* ─── Perform search ─────────────────────────────────── */
+function performSearch() {
+    const raw = document.getElementById('searchInput').value.trim();
+    _lastQuery = raw;
+    if (!raw) {
+        document.getElementById('searchResults').innerHTML =
+            '<div class="search-prompt">⬆ Start typing a CTN to find stored memos.</div>';
+        return;
+    }
+    // "0000" maps to empty-CTN memos stored as "0000"
+    const q = raw === '0000' ? '0000' : raw;
+    searchByCTNPrefix(q, 100, (results) => {
+        renderResults(results, q);
+    });
+}
+
+function renderResults(memos, query) {
+    const container = document.getElementById('searchResults');
+    if (memos.length === 0) {
+        container.innerHTML = `<div class="search-no-results">No memos found for "<strong>${escapeHtml(query)}</strong>".</div>`;
+        return;
+    }
+    container.innerHTML = memos.map(m => {
+        const date     = new Date(m.timestamp).toLocaleString();
+        const ctnLabel = (m.ctn && m.ctn !== '0000') ? m.ctn : 'No CTN';
+        const snippet  = (m.content || '').replace(/\r?\n/g, ' ').substring(0, 120) + '…';
+        return `<div class="search-result-item" onclick="openDetail(${m.id})">
+            <div class="search-result-meta">${escapeHtml(date)}</div>
+            <div class="search-result-ctn">CTN: ${escapeHtml(ctnLabel)}</div>
+            <div class="search-result-snippet">${escapeHtml(snippet)}</div>
+        </div>`;
+    }).join('');
+}
+
+/* ─── Memo detail view ───────────────────────────────── */
+function openDetail(id) {
+    if (!db) return;
+    const tx  = db.transaction('copied_memos', 'readonly');
+    const req = tx.objectStore('copied_memos').get(id);
+    req.onsuccess = () => {
+        const rec = req.result;
+        if (!rec) return;
+        _detailRecord = rec;
+        const ctnLabel = (rec.ctn && rec.ctn !== '0000') ? rec.ctn : 'No CTN';
+        document.getElementById('detailTitle').textContent = `CTN: ${ctnLabel}`;
+        document.getElementById('detailMeta').textContent  = new Date(rec.timestamp).toLocaleString();
+        document.getElementById('memoDetailContent').textContent = rec.content;
+        document.getElementById('detailCopyBtn').textContent = 'Copy Memo';
+        document.getElementById('memoDetailPanel').classList.add('open');
+    };
+}
+
+function closeDetail() {
+    document.getElementById('memoDetailPanel').classList.remove('open');
+    _detailRecord = null;
+}
+
+function copyDetailContent() {
+    if (!_detailRecord) return;
+    navigator.clipboard.writeText(_detailRecord.content).then(() => {
+        const btn = document.getElementById('detailCopyBtn');
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => { btn.textContent = 'Copy Memo'; }, 1500);
+    });
+}
+
+function deleteDetailMemo() {
+    if (!_detailRecord || !db) return;
+    if (!confirm('Delete this memo permanently?')) return;
+    const tx  = db.transaction('copied_memos', 'readwrite');
+    const req = tx.objectStore('copied_memos').delete(_detailRecord.id);
+    req.onsuccess = () => {
+        closeDetail();
+        // Refresh count and re-run last search
+        countAllMemos(n => {
+            document.getElementById('searchCount').textContent =
+                n ? `${n.toLocaleString()} memo${n !== 1 ? 's' : ''} stored` : 'No memos stored yet';
+        });
+        if (_lastQuery) {
+            const q = _lastQuery;
+            searchByCTNPrefix(q, 100, r => renderResults(r, q));
+        } else {
+            document.getElementById('searchResults').innerHTML =
+                '<div class="search-prompt">⬆ Start typing a CTN to find stored memos.</div>';
+        }
+    };
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escapeRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+</script>
+</body>
+</html>
